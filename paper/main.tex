@@ -1,0 +1,161 @@
+
+\documentclass[10pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\title{A Typed Synthetic Neuroangiography Benchmark for Endovascular Procedural Perception}
+\author{Colin Son, MD \\ Seldinger, Inc}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We introduce Seldinger-DSA, a reproducible typed synthetic benchmark harness for neuroangiography procedural perception. Each generated sequence carries explicit artifacts for vascular geometry, projection view, contrast bolus phase, DSA frames, vessel masks, catheter path, tip state, device-vessel relationship, and failure modes. The benchmark evaluates vessel segmentation, catheter-tip localization, bolus phase estimation, and controlled stress regimes including projection ambiguity, coil/device decoys, low catheter salience, motion, and overlap. In local CPU-only experiments, typed v4 stress perturbations reduce cross-regime catheter-tip precision while in-domain v4 training recovers performance, demonstrating that procedural variables can expose failures not visible from aggregate vessel metrics alone. We also integrate DIAS as an external vessel-segmentation sanity check and use it to frame a narrow synthetic-to-real relevance claim: the current benchmark exercises real DSA-adjacent vessel-mask and projection-ambiguity conditions, but does not yet validate real catheter/device perception. This draft is research-only and makes no clinical performance claims.
+\end{abstract}
+
+\section{Introduction}
+Endovascular procedures depend on temporally evolving anatomy, projection geometry, contrast bolus dynamics, and device state. Standard image segmentation benchmarks usually evaluate masks or frame-level anatomy in isolation. That is insufficient for procedural perception systems that must distinguish vessel visibility from device motion, recognize when a catheter tip is ambiguous, and remain robust under projection overlap or coil/device decoys.
+
+Seldinger-DSA is intended as a small, reproducible benchmark substrate for these procedural variables. The central contribution is not photorealistic image synthesis. Instead, the contribution is a typed benchmark contract: every sequence includes provenance-bearing structured artifacts that allow failures to be sliced by anatomy, projection, bolus phase, device state, and labeled stress regime.
+
+The intended synthetic-to-real bridge is construct validity rather than clinical validation. DIAS provides real DSA vessel masks and projection-derived anatomy against which the vessel component of the benchmark can be sanity checked. The synthetic benchmark then adds typed procedural labels outside the DIAS vessel-segmentation task: catheter path, tip state, device-vessel relationship, bolus phase, and controlled procedural failure modes. A positive synthetic result should therefore be read as evidence that a stress variable is measurable and failure-inducing under controlled conditions, not as evidence that the resulting model will work on real catheterized DSA without further validation.
+
+\section{Related Work}
+DIAS introduced a dataset and benchmark for intracranial artery segmentation in DSA sequences~\cite{dias2024}. DIAS is valuable for external vessel-segmentation sanity checking, but it does not address catheter-tip or device-state evaluation. U-Net~\cite{unet2015}, 3D U-Net~\cite{cicek2016_3dunet}, nnU-Net~\cite{nnunet2018}, TransUNet~\cite{transunet2021}, and the Medical Segmentation Decathlon~\cite{medicaldecathlon2019} remain important reference points for biomedical image segmentation pipelines and benchmark design. Promptable foundation segmentation models, including Segment Anything~\cite{sam2023}, SAM 2~\cite{sam2_2024}, MedSAM~\cite{medsam2024}, MedSAM-2~\cite{medsam2_2024}, and medical SAM2 benchmarking work~\cite{sam2medical2024}, motivate future comparisons against stronger interactive and video-style medical vision baselines. Domain-generalization reviews in medical image analysis~\cite{yoon2024_domain_generalization} further motivate our conservative treatment of synthetic-to-real claims. Agentic scientific workflows~\cite{aiscientistv2_2025} and self-revising discovery frameworks~\cite{selfrevising2026} inform our experiment-management and typed-regime framing, but our benchmark contribution is concrete: manifests, generators, metrics, baselines, and failure reports for neuroangiography procedural perception.
+
+\section{Benchmark Design}
+Each Seldinger-DSA record is a JSONL manifest entry with the following typed artifacts:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{VascularGraph}: branch labels, approximate diameters, tortuosity, and topology metadata.
+  \item \textbf{ProjectionView}: projection/view parameters and overlap scores.
+  \item \textbf{BolusCurve}: arrival, peak, washout, and per-frame phase labels.
+  \item \textbf{DSAFrameSequence} and \textbf{VesselMaskSequence}: image/mask artifacts and dimensions.
+  \item \textbf{CatheterPath} and \textbf{CatheterTipState}: dense device path, per-frame tip coordinates, visibility, and confidence target.
+  \item \textbf{DeviceVesselRelationship}: per-frame relationship states.
+  \item \textbf{FailureMode}: controlled metadata including occlusion, low contrast, motion, overlap, vessel sparsity, coil mass, and projection ambiguity.
+\end{itemize}
+
+The v4 stress regime, \texttt{coil\_projection\_ambiguity\_v0}, forces oblique/high-overlap projections, coil/microdevice decoys, reduced catheter salience, stronger background/subtraction artifacts, and denser branches. This regime is designed to test whether procedural perturbations expose failures hidden by ordinary segmentation scores.
+
+\section{Baselines and Metrics}
+We implemented dependency-light CPU baselines to keep the first benchmark reproducible and inexpensive. For synthetic catheter-tip localization, the primary baseline is a trainable patch-ranker with dynamic-programming sequence smoothing. It ranks typed device-mask candidates using local patch pixels, intensity, endpointness, weak frame prior, and temporal continuity, then smooths candidate paths with a Viterbi-style transition penalty. We retain the earlier ``tiny temporal'' model as a diagnostic ablation because it exposes how unstable naive tip heuristics can be under cross-regime shifts.
+
+For DIAS, the projection-threshold and projection-morphology methods are wiring/sensitivity controls rather than competitive DIAS segmenters. To avoid comparing only against hand-tuned over-segmentation baselines, we also added a local learned control: a random-forest pixel classifier trained on DIAS training labels using temporal max/min/mean/range/std and normalized pixel-coordinate features, with threshold and small-component removal selected on DIAS validation data. This is still not nnU-Net or a published DIAS state-of-the-art model, but it is a substantially stronger learned DIAS baseline for this draft.
+
+Metrics include mean IoU and Dice for vessel masks, mean catheter-tip pixel error, within-2px and within-5px tip accuracy, and bolus phase accuracy. Geometry QA gates verify device-mask presence, tip-on-device consistency, and tip-to-path distance before model evaluation.
+
+\section{Preliminary Results}
+All results below are local CPU-only prototype experiments. They should be interpreted as benchmark-development evidence, not clinical validation.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{../outputs/figures/preprint_benchmark_schema.png}
+\caption{Typed benchmark contract for Seldinger-DSA. Each sequence links vessel geometry, projection, bolus state, image frames, masks, catheter-tip state, and controlled failure modes to auditable metrics.}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{../outputs/figures/preprint_synthetic_results_panel.png}
+\caption{Synthetic procedural-perception summary. v4 stress perturbations degrade strict catheter-tip precision under cross-regime training, while v4 in-domain training recovers performance.}
+\end{figure}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrrrrrr}
+\toprule
+Experiment & IoU & Dice & Tip err. & Tip@2 & Tip@5 & Phase \\
+\midrule
+Tiny temporal: v2→v2 & 0.502 & 0.617 & 0.95 & 0.926 & 0.972 & 0.880 \\
+Tiny temporal: v3→v3 & 0.610 & 0.726 & 1.63 & 0.769 & 0.991 & 0.944 \\
+Tiny temporal: v2→v3 & 0.256 & 0.383 & 3.56 & 0.139 & 0.963 & 0.944 \\
+Tiny temporal: v3→v2 & 0.813 & 0.850 & 3.39 & 0.009 & 0.991 & 0.880 \\
+Tiny temporal: mixed v2+v3→v3 & 0.569 & 0.696 & 2.53 & 0.259 & 0.991 & 0.944 \\
+Patch-ranker DP: v2→v3 & 0.256 & 0.383 & 2.21 & 0.611 & 0.954 & 0.944 \\
+Patch-ranker DP: v3→v2 & 0.813 & 0.850 & 1.10 & 0.889 & 0.991 & 0.880 \\
+Patch-ranker DP: mixed v2+v3→v3 & 0.569 & 0.696 & 1.00 & 0.926 & 1.000 & 0.944 \\
+Patch-ranker DP: mixed v2+v3→v4 & 0.539 & 0.670 & 2.19 & 0.509 & 0.957 & 0.935 \\
+Patch-ranker DP: v4→v4 & 0.674 & 0.770 & 1.43 & 0.812 & 0.975 & 0.935 \\
+\bottomrule
+\end{tabular}
+\caption{Synthetic Seldinger-DSA preliminary results. Arrows denote train regime to evaluation regime. v4 is the controlled coil/projection ambiguity stress protocol. The two v4 Patch-ranker DP rows are three-generator-seed means; the range is reported in the stability paragraph below. Other rows are single-run context/diagnostic results.}
+\end{table}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+DIAS experiment & IoU & Dice \\
+\midrule
+DIAS projection-threshold validation & 0.411 & 0.569 \\
+DIAS projection-threshold test & 0.459 & 0.612 \\
+DIAS projection-morphology validation & 0.420 & 0.578 \\
+DIAS projection-morphology test & 0.459 & 0.612 \\
+DIAS RF pixel classifier validation & 0.526 & 0.680 \\
+DIAS RF pixel classifier test & 0.528 & 0.685 \\
+Synthetic area-prior v2 validation & 0.437 & 0.595 \\
+Synthetic area-prior v2 test & 0.465 & 0.624 \\
+\bottomrule
+\end{tabular}
+\caption{External DIAS vessel-segmentation sanity check and synthetic-prior transfer experiment. DIAS is used only for vessel segmentation because the available labels do not include catheter/device state. Projection-threshold and projection-morphology rows are wiring controls; the RF pixel classifier is a DIAS-label-trained local learned control. The synthetic area-prior model estimates vessel occupancy from Seldinger-DSA v2 training masks, keeps the corresponding top-percentile temporal-range DIAS pixels, and applies fixed small-component removal.}
+\end{table}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrrr}
+\toprule
+Uncertainty analysis & n & Mean Dice delta & 95\% bootstrap CI \\
+\midrule
+Synthetic v2 prior vs projection-threshold test & 20 & +0.012 & [-0.028, +0.057] \\
+Synthetic v2 prior vs projection-morphology test & 20 & +0.013 & [-0.032, +0.064] \\
+Validation-selected synthetic prior vs threshold test & 20 & +0.012 & [-0.029, +0.058] \\
+Validation-selected synthetic prior vs morphology test & 20 & +0.013 & [-0.032, +0.064] \\
+DIAS RF pixel classifier test Dice & 20 & 0.685 & [0.640, 0.725] \\
+\bottomrule
+\end{tabular}
+\caption{Sequence-level bootstrap uncertainty on DIAS test sequences. The synthetic-prior effect is small and its interval crosses zero; it should be read as a suggestive vessel-prior sanity check, not a statistically established transfer result.}
+\end{table}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{../outputs/figures/synthetic_to_dias_vessel_transfer_panel.png}
+\caption{Synthetic-to-DIAS vessel-mask adaptation result on DIAS test Dice. The y-axis is zero-anchored; error bars are sequence-level 95\% bootstrap confidence intervals. The RF pixel classifier is the stronger DIAS-label-trained control, while the selected v2 synthetic prior gives only a small positive difference versus projection wiring controls whose paired interval crosses zero.}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.98\linewidth]{../outputs/figures/dias_test_threshold_vs_morphology_paper.png}
+\caption{DIAS test-set vessel-segmentation overlay examples comparing projection-threshold and projection-morphology baselines. Green indicates ground-truth vessel pixels missed by the prediction, red indicates prediction-only pixels, and yellow indicates overlap. These examples are included only as an external vessel-mask sanity check; DIAS does not provide catheter or device-state labels.}
+\end{figure}
+
+The main observed synthetic pattern is that mixed v2+v3 training does not fully transfer to v4 stress cases, while v4 in-domain training recovers segmentation and strict tip precision. Across three independent generator seeds, patch-ranker DP mixed v2+v3→v4 achieved Tip@2 0.509 on average (range 0.482--0.528), whereas v4→v4 achieved 0.812 (range 0.796--0.824), a paired mean recovery of +0.302 Tip@2. Mean Dice showed the same stable in-domain recovery (+0.100, range +0.099--+0.101). This supports the value of typed synthetic perturbations as controlled failure probes, while still being limited to the current generator family.
+
+The tip-localization story depends on the baseline. The tiny temporal ablation gives pathological strict-tip behavior in some cross-regime rows (for example v3→v2 Tip@2=0.009 despite high mask Dice), whereas patch-ranker DP recovers that same row to Tip@2=0.889. We therefore treat patch-ranker DP as the primary baseline and the tiny temporal rows as an instability diagnostic rather than as an alternative headline result.
+
+DIAS wiring is functional, but the projection-threshold and morphology controls visibly over-segment some test sequences and should not be mistaken for competitive DIAS baselines. The added learned RF pixel classifier substantially outperforms them on DIAS test Dice (0.685 versus 0.612), while the synthetic-to-DIAS area-prior experiment gives only a small, uncertain vessel-mask signal: the best synthetic-only prior, selected from v2/v3/v4 variants by validation Dice, uses the v2 synthetic vessel occupancy prior and improves DIAS test Dice from 0.612 to 0.624 against wiring controls. The paired bootstrap CI for this +0.012--0.013 Dice difference crosses zero, and both v2 and v3 priors give nearly identical test Dice. The v4 prior underperforms on DIAS, consistent with v4 being a deliberately harder coil/projection stress regime rather than a DIAS-matched vessel prior.
+
+\section{Synthetic-to-Real Relevance and Required Follow-up}
+The present evidence supports a limited synthetic-to-real relevance claim: Seldinger-DSA targets variables that also determine perception difficulty in real DSA---vessel conspicuity, projection overlap, bolus phase, device salience, motion, and coil/device ambiguity---and DIAS confirms that the vessel-mask portion of the pipeline can be executed on real DSA sequences. This creates a practical bridge between real vessel anatomy and synthetic procedural labels, but it is not yet a demonstration of real-world catheter-tip performance.
+
+The synthetic-to-real experiment is a controlled DIAS adaptation sanity check. We estimate vessel occupancy priors from synthetic v2, v3, and v4 training masks, apply each prior as an adaptive top-percentile rule on DIAS temporal-range projections, and evaluate validation/test DIAS vessel masks against projection-threshold and projection-morphology wiring controls plus a DIAS-label-trained RF pixel classifier. The v2 prior is selected by validation Dice and gives a small positive test difference versus the wiring controls (+0.012 Dice versus threshold, +0.013 versus morphology), but sequence-level bootstrap intervals cross zero. The learned RF control is stronger than all synthetic-prior rows. Therefore the DIAS result is no longer presented as a transfer result; it is evidence that the real-data evaluation path works and that synthetic vessel priors can be plugged into it. Because DIAS lacks catheter/device annotations, any catheter-tip transfer claim still requires a separate labeled real or phantom catheterized DSA dataset. Until then, the real-data claim remains: Seldinger-DSA is relevant as a typed stress-test generator for DSA-like procedural variables and as a candidate source of synthetic augmentation to be tested against competent learned real-data baselines, not as validated clinical perception.
+
+\section{Reproducibility and Data Availability}
+We split the v0.1 release into source code on GitHub and generated benchmark/data artifacts on Zenodo. Source code, tests, schemas, and paper source are available in the public GitHub repository at \url{https://github.com/txmed82/typed-synthetic-neuroangiography-benchmark}. Generated benchmark artifacts are archived on Zenodo at \url{https://zenodo.org/records/20581909} with DOI \url{https://doi.org/10.5281/zenodo.20581909} and concept DOI \url{https://doi.org/10.5281/zenodo.20581908}. The generated-artifact archive SHA-256 is \texttt{7d7e3304441c9bdc0360ef4416cc4b855f8aa4dcd2fea7fbe18e45a3c3a6e850}.
+
+The original DIAS source dataset is not redistributed in the Seldinger-DSA archive. DIAS remains available from its original dataset DOI, \url{https://doi.org/10.5281/zenodo.11396520}, and should be cited with the DIAS paper DOI, \url{https://doi.org/10.1016/j.media.2024.103247}. The local DIAS-derived outputs included in the prepared Seldinger-DSA archive are prediction masks/overlays and reports from the vessel-only sanity experiments, not a re-release of DIAS source data.
+
+The Zenodo record is a restricted research release candidate pending final author/license approval. The current package should be cited as a research artifact rather than a clinical dataset.
+
+\section{Limitations}
+Seldinger-DSA is not a clinical system and does not establish clinical safety, efficacy, or procedural decision support. The current catheter/device labels are synthetic only. DIAS provides an external DSA sanity check for vessels but not catheter-tip or device-state validation. The generator remains visually synthetic and should not be confused with a photorealistic angiography simulator. The DIAS projection baselines are wiring controls, not competitive segmenters; the added RF classifier is a learned local control but still not nnU-Net, VSS-Net, or a published DIAS state-of-the-art model. The synthetic-to-DIAS area-prior effect is small and statistically uncertain on n=20 DIAS test sequences. Generator-seed stability was tested only for three seeds and only within the current procedural generator family. No result in this draft establishes synthetic-to-real transfer for catheter or device-state perception.
+
+\section{Next Steps Before arXiv Submission}
+Before arXiv submission, the remaining step is a final claim-audit pass. The GitHub repository is public and the generated-data archive has a Zenodo DOI. If more compute is available, the highest-value experiment is an nnU-Net or VSS-Net-style learned DIAS run and a labeled catheterized phantom/real DSA evaluation set. The arXiv claim should remain narrow: typed synthetic procedural perturbations can expose failure modes in endovascular perception benchmarks that segmentation-only evaluation misses, and DIAS provides a real-vessel evaluation path, but the present synthetic-prior DIAS signal is suggestive and uncertain rather than a validated transfer result.
+
+\bibliographystyle{plain}
+\bibliography{references}
+\end{document}

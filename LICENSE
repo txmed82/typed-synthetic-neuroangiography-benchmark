@@ -1,0 +1,13 @@
+Seldinger Synthetic DSA Research Harness License Stub
+
+Copyright (c) 2026 Colin Son / Seldinger Labs. All rights reserved.
+
+This directory is a research-only release candidate. No public open-source or data-redistribution license is granted by this stub.
+
+Before any public release, replace this file with the final approved license terms for:
+
+1. Source code in the synthetic DSA harness.
+2. Generated synthetic image/label artifacts.
+3. Third-party public datasets referenced by the harness, including DIAS.
+
+DIAS and any other external datasets remain governed by their original licenses and citation requirements. This harness does not relicense third-party data.

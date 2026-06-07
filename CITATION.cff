@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this research artifact, cite it as below. Public citation details are provisional until an arXiv/DOI release exists."
+title: "A Typed Synthetic Neuroangiography Benchmark for Endovascular Procedural Perception"
+version: "0.1.0"
+date-released: "2026-06-06"
+authors:
+  - family-names: "Son"
+    given-names: "Colin"
+abstract: "A research-only synthetic DSA benchmark harness for controlled evaluation of vessel segmentation, catheter/wire tip localization, bolus phase estimation, and typed projection/device failure modes."
+keywords:
+  - digital subtraction angiography
+  - endovascular intervention
+  - synthetic data
+  - catheter tracking
+  - benchmark
+license: "LicenseRef-Proprietary-Research-Only"
+repository-code: "https://github.com/seldinger-labs/seldinger"

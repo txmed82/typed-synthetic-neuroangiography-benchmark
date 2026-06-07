@@ -1,0 +1,11 @@
+Seldinger Synthetic DSA Research Harness v0.1
+
+This release candidate includes local code, generated synthetic artifacts, and references to external public DSA data for sanity checks.
+
+External dataset note:
+- DIAS is used only as a vessel-segmentation sanity check. It does not provide catheter-tip/device-state labels in this harness.
+- DIAS should be cited and licensed according to its original distribution terms, not this repository's license stub.
+
+Medical safety note:
+- This artifact is not a medical device.
+- It is not validated for clinical use, diagnosis, treatment planning, intraprocedural guidance, or patient safety decisions.

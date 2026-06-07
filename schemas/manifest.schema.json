@@ -1,0 +1,471 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://seldinger-labs.local/synthetic-dsa/manifest.schema.json",
+  "title": "SeldingerSyntheticDSASequenceManifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "sequence_id",
+    "generator",
+    "provenance",
+    "vascular_graph",
+    "projection_view",
+    "bolus_curve",
+    "dsa_frame_sequence",
+    "vessel_mask_sequence",
+    "catheter_path",
+    "catheter_tip_state",
+    "device_vessel_relationship",
+    "failure_modes",
+    "benchmark_tasks"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.1.0"
+    },
+    "sequence_id": {
+      "type": "string",
+      "pattern": "^sdsa_[a-zA-Z0-9_\\-]+$"
+    },
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "config_hash",
+        "seed"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "config_hash": {
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer"
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "created_at",
+        "git_commit",
+        "source"
+      ],
+      "properties": {
+        "created_at": {
+          "type": "string"
+        },
+        "git_commit": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "synthetic"
+          ]
+        }
+      }
+    },
+    "vascular_graph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_count",
+        "edge_count",
+        "branch_labels",
+        "diameter_px_range",
+        "tortuosity_mean"
+      ],
+      "properties": {
+        "node_count": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "edge_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "branch_labels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "branch_diameter_px": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0.0
+          }
+        },
+        "diameter_px_range": {
+          "$ref": "#/$defs/number_pair"
+        },
+        "tortuosity_mean": {
+          "type": "number",
+          "minimum": 1.0
+        }
+      }
+    },
+    "projection_view": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "view",
+        "c_arm_degrees",
+        "overlap_score",
+        "foreshortening_score"
+      ],
+      "properties": {
+        "view": {
+          "type": "string",
+          "enum": [
+            "AP",
+            "lateral",
+            "oblique"
+          ]
+        },
+        "c_arm_degrees": {
+          "$ref": "#/$defs/number_pair"
+        },
+        "overlap_score": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "foreshortening_score": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        }
+      }
+    },
+    "bolus_curve": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "arrival_frame",
+        "peak_frame",
+        "washout_frame",
+        "phase_by_frame"
+      ],
+      "properties": {
+        "arrival_frame": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "peak_frame": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "washout_frame": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bolus_gain_by_frame": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0.0
+          }
+        },
+        "phase_by_frame": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "precontrast",
+              "arrival",
+              "arterial_peak",
+              "washout"
+            ]
+          }
+        }
+      }
+    },
+    "dsa_frame_sequence": {
+      "$ref": "#/$defs/sequence_file"
+    },
+    "vessel_mask_sequence": {
+      "$ref": "#/$defs/sequence_file"
+    },
+    "device_mask_sequence": {
+      "$ref": "#/$defs/sequence_file"
+    },
+    "catheter_path": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path_type",
+        "polyline_px",
+        "occlusion_flags_by_frame"
+      ],
+      "properties": {
+        "path_type": {
+          "type": "string",
+          "enum": [
+            "centerline_following",
+            "near_wall",
+            "branch_entering",
+            "ambiguous_overlap"
+          ]
+        },
+        "polyline_px": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/number_pair"
+          },
+          "minItems": 2
+        },
+        "occlusion_flags_by_frame": {
+          "type": "array",
+          "items": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "catheter_tip_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tip_xy_by_frame",
+        "visibility_by_frame",
+        "confidence_target_by_frame"
+      ],
+      "properties": {
+        "tip_xy_by_frame": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nullable_number_pair"
+          }
+        },
+        "visibility_by_frame": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "visible",
+              "occluded",
+              "ambiguous"
+            ]
+          }
+        },
+        "confidence_target_by_frame": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          }
+        }
+      }
+    },
+    "device_vessel_relationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state_by_frame"
+      ],
+      "properties": {
+        "state_by_frame": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "in_vessel",
+              "near_wall",
+              "branch_entering",
+              "crossing_overlap",
+              "ambiguous"
+            ]
+          }
+        }
+      }
+    },
+    "appearance_model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "realism",
+        "noise_sigma",
+        "blur_radius",
+        "subtraction_residual_strength",
+        "motion_shift_px_by_frame"
+      ],
+      "properties": {
+        "realism": {
+          "type": "string",
+          "enum": [
+            "v0",
+            "v1",
+            "v2",
+            "v3",
+            "v4"
+          ]
+        },
+        "noise_sigma": {
+          "type": "number",
+          "minimum": 0.0
+        },
+        "blur_radius": {
+          "type": "number",
+          "minimum": 0.0
+        },
+        "subtraction_residual_strength": {
+          "type": "number",
+          "minimum": 0.0
+        },
+        "motion_shift_px_by_frame": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/number_pair"
+          }
+        },
+        "detector_artifacts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "bone_shadow_count",
+            "scanline_stride_px"
+          ],
+          "properties": {
+            "bone_shadow_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "scanline_stride_px": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "stress_protocol": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "coil_decoy_count",
+            "projection_ambiguity_score",
+            "catheter_salience"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "coil_decoy_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "projection_ambiguity_score": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            "catheter_salience": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            }
+          }
+        }
+      }
+    },
+    "failure_modes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "noise",
+          "motion",
+          "low_contrast",
+          "overlap",
+          "vessel_sparsity",
+          "projection_ambiguity",
+          "catheter_occlusion",
+          "coil_mass"
+        ]
+      }
+    },
+    "benchmark_tasks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "vessel_segmentation",
+          "catheter_tip_localization",
+          "bolus_phase_estimation",
+          "failure_detection"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "number_pair": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "nullable_number_pair": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/number_pair"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sequence_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "uri",
+        "frame_count",
+        "height",
+        "width",
+        "dtype"
+      ],
+      "properties": {
+        "uri": {
+          "type": "string"
+        },
+        "frame_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "dtype": {
+          "type": "string",
+          "enum": [
+            "uint8",
+            "float32",
+            "bool"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,11 @@
+.DS_Store
+__pycache__/
+*.pyc
+data/
+outputs/sequences/
+outputs/dias_predictions/
+zenodo_staging/
+*.aux
+*.log
+*.out
+*.toc
